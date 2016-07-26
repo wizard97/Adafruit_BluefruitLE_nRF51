@@ -38,13 +38,12 @@
 #define _ADAFRUIT_ATPARSER_H_
 
 #include <Arduino.h>
-#include "utility/sdep.h"
 
 // Class to facilitate sending AT Command and check response
 
 #define BLUEFRUIT_MODE_COMMAND   HIGH
 #define BLUEFRUIT_MODE_DATA      LOW
-#define BLE_BUFSIZE              4*SDEP_MAX_PACKETSIZE
+#define BLE_BUFSIZE             100
 
 
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
