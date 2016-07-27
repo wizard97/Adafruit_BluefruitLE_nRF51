@@ -19,8 +19,10 @@ typedef enum hc05_role
 class HC05 : public Adafruit_ATParser
 {
 public:
-    HC05(HardwareSerial &serial, int cmdPin, int pwrPin);
-    HC05(SoftwareSerial &serial, int cmdPin, int pwrPin);
+    HC05();
+
+    void begin(HardwareSerial &serial, int cmdPin, int pwrPin);
+    void begin(SoftwareSerial &serial, int cmdPin, int pwrPin);
 
     //powercycle
     void restartModule(uint8_t mode = BLUEFRUIT_MODE_DATA);
@@ -51,9 +53,9 @@ protected:
 private:
     uint32_t _dataBaud;
 
-    const int _cmdPin, _pwrPin;
+    int _cmdPin, _pwrPin;
     // Stupid Serial inherits from Stream instead of an abstract Serial class
-    SoftwareSerial *const _swSerial;
-    HardwareSerial *const _hwSerial;
+    SoftwareSerial *_swSerial;
+    HardwareSerial *_hwSerial;
 };
 #endif

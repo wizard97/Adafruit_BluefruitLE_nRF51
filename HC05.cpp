@@ -1,18 +1,28 @@
 #include "HC05.h"
 
-HC05::HC05(HardwareSerial &serial, int cmdPin, int pwrPin)
-: _hwSerial(&serial), _swSerial(NULL),_cmdPin(cmdPin), _pwrPin(pwrPin)
+HC05::HC05()
 {
     _dataBaud = DEFAULT_DATA_BAUD_RATE;
-    restartModule(BLUEFRUIT_MODE_COMMAND);
 }
 
 
-HC05::HC05(SoftwareSerial &serial, int cmdPin, int pwrPin)
-: _swSerial(&serial), _hwSerial(NULL), _cmdPin(cmdPin), _pwrPin(pwrPin)
+void HC05::begin(SoftwareSerial &serial, int cmdPin, int pwrPin)
 {
-    _dataBaud = DEFAULT_DATA_BAUD_RATE;
-    restartModule(BLUEFRUIT_MODE_COMMAND);
+    _swSerial = &serial;
+    _hwSerial = NULL;
+    _cmdPin = cmdPin;
+    _pwrPin = pwrPin;
+    restartModule(BLUEFRUIT_MODE_DATA);
+}
+
+
+void HC05::begin(HardwareSerial &serial, int cmdPin, int pwrPin)
+{
+    _hwSerial = &serial;
+    _swSerial = NULL;
+    _cmdPin = cmdPin;
+    _pwrPin = pwrPin;
+    restartModule(BLUEFRUIT_MODE_DATA);
 }
 
 void HC05::serialBegin(uint32_t baud)
@@ -26,7 +36,7 @@ void HC05::serialBegin(uint32_t baud)
 
 void HC05::restartModule(uint8_t mode)
 {
-    if (mode != BLUEFRUIT_MODE_COMMAND || mode != BLUEFRUIT_MODE_DATA)
+    if (mode != BLUEFRUIT_MODE_COMMAND && mode != BLUEFRUIT_MODE_DATA)
         return;
 
     if (mode == BLUEFRUIT_MODE_COMMAND) {
@@ -48,7 +58,7 @@ void HC05::restartModule(uint8_t mode)
 
 bool HC05::setMode(uint8_t mode)
 {
-    if (mode != BLUEFRUIT_MODE_COMMAND || mode != BLUEFRUIT_MODE_DATA)
+    if (mode != BLUEFRUIT_MODE_COMMAND && mode != BLUEFRUIT_MODE_DATA)
         return false;
 
     if (getMode() != mode)
@@ -64,7 +74,12 @@ bool HC05::setBaud(uint32_t baud)
 
     uint32_t args[] = {baud, 1, 0};
     //AT+UART
-    return atcommand_full("AT+UART", NULL, 3, argtype, args);
+    if(atcommand_full("AT+UART", NULL, 3, argtype, args)) {
+        _dataBaud = baud;
+        serialBegin(baud);
+        return true;
+    }
+    return false;
 }
 
 bool HC05::setRole(hc05_role role)
