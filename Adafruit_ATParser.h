@@ -43,7 +43,7 @@
 
 #define BLUEFRUIT_MODE_COMMAND   HIGH
 #define BLUEFRUIT_MODE_DATA      LOW
-#define BLE_BUFSIZE             100
+#define BLE_BUFSIZE             50
 
 
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
