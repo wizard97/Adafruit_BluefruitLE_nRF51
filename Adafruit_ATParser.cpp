@@ -58,16 +58,17 @@ Adafruit_ATParser::Adafruit_ATParser(void)
     @return true if response is ended with "OK". Otherwise it could be "ERROR"
 */
 /******************************************************************************/
-bool Adafruit_ATParser::waitForOK(void)
+bool Adafruit_ATParser::waitForOK(uint16_t at_timeout)
 {
   if (_verbose) SerialDebug.print( F("\n<- ") );
 
   // Use temp buffer to avoid overwrite returned result if any
   char tempbuf[BLE_BUFSIZE+1];
 
-  while ( readline(tempbuf, BLE_BUFSIZE) ) {
+  while ( readline(tempbuf, BLE_BUFSIZE, at_timeout) ) {
+     if (_verbose) SerialDebug.println( tempbuf );
     if ( strcmp(tempbuf, "OK") == 0 ) return true;
-    if ( strcmp(tempbuf, "ERROR") == 0 ) return false;
+    if ( strncmp(tempbuf, "ERROR", sizeof("ERROR")) == 0 ) return false;
 
     // Copy to internal buffer if not OK or ERROR
     strcpy(this->buffer, tempbuf);
@@ -81,7 +82,7 @@ bool Adafruit_ATParser::waitForOK(void)
     @param
 */
 /******************************************************************************/
-bool Adafruit_ATParser::send_arg_get_resp(int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[])
+bool Adafruit_ATParser::send_arg_get_resp(int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[], uint16_t at_timeout)
 {
   // Command arguments according to its type
   for(uint8_t i=0; i<argcount; i++)
@@ -137,11 +138,11 @@ bool Adafruit_ATParser::send_arg_get_resp(int32_t* reply, uint8_t argcount, uint
   if (reply)
   {
     if (_verbose) SerialDebug.print( F("\n<- ") );
-    (*reply) = readline_parseInt();
+    (*reply) = readline_parseInt(at_timeout);
   }
 
   // check OK or ERROR status
-  return waitForOK();
+  return waitForOK(at_timeout);
 }
 
 /******************************************************************************/
@@ -150,7 +151,7 @@ bool Adafruit_ATParser::send_arg_get_resp(int32_t* reply, uint8_t argcount, uint
     @param
 */
 /******************************************************************************/
-bool Adafruit_ATParser::atcommand_full(const char cmd[], int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[])
+bool Adafruit_ATParser::atcommand_full(const char cmd[], int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[], uint16_t at_timeout)
 {
   bool result;
   uint8_t current_mode = _mode;
@@ -160,7 +161,7 @@ bool Adafruit_ATParser::atcommand_full(const char cmd[], int32_t* reply, uint8_t
 
   // Execute command with parameter and get response
   print(cmd);
-  result = this->send_arg_get_resp(reply, argcount, argtype, args);
+  result = this->send_arg_get_resp(reply, argcount, argtype, args, at_timeout);
 
   // switch back if necessary
   if ( current_mode == BLUEFRUIT_MODE_DATA ) setMode(BLUEFRUIT_MODE_DATA);
@@ -174,7 +175,7 @@ bool Adafruit_ATParser::atcommand_full(const char cmd[], int32_t* reply, uint8_t
     @param
 */
 /******************************************************************************/
-bool Adafruit_ATParser::atcommand_full(const __FlashStringHelper *cmd, int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[])
+bool Adafruit_ATParser::atcommand_full(const __FlashStringHelper *cmd, int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[], uint16_t at_timeout)
 {
   bool result;
   uint8_t current_mode = _mode;
@@ -184,13 +185,15 @@ bool Adafruit_ATParser::atcommand_full(const __FlashStringHelper *cmd, int32_t* 
 
   // Execute command with parameter and get response
   print(cmd);
-  result = this->send_arg_get_resp(reply, argcount, argtype, args);
+  result = this->send_arg_get_resp(reply, argcount, argtype, args, at_timeout);
 
   // switch back if necessary
   if ( current_mode == BLUEFRUIT_MODE_DATA ) setMode(BLUEFRUIT_MODE_DATA);
 
   return result;
 }
+
+
 
 /******************************************************************************/
 /*!
@@ -200,13 +203,23 @@ bool Adafruit_ATParser::atcommand_full(const __FlashStringHelper *cmd, int32_t* 
             data to the end of the line.
 */
 /******************************************************************************/
-int32_t Adafruit_ATParser::readline_parseInt(void)
+int32_t Adafruit_ATParser::readline_parseInt(uint16_t timeout)
 {
-  uint16_t len = readline();
+  uint16_t len = readline(timeout);
   if (len == 0) return 0;
 
-  // also parsed hex number e.g 0xADAF
-  int32_t val = strtol(buffer, NULL, 0);
+  //test
+  uint16_t last;
+  for (last = len-1; last >= 0; last--) {
+      if ((buffer[last] < '0' || buffer[last] > '9') &&
+            (buffer[last] != '\r' || buffer[last] != '\n' || buffer[last] != '\0'))
+        break; //not a number
+  }
+
+  if (last >= len - 1)
+    return 0; //nothing found
+
+  int32_t val = strtol(&buffer[last+1], NULL, 0);
 
   return val;
 }

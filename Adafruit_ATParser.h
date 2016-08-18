@@ -40,17 +40,20 @@
 #include <Arduino.h>
 
 // Class to facilitate sending AT Command and check response
+#define DEFUALT_AT_TIMEOUT 1000
 
 #define BLUEFRUIT_MODE_COMMAND   HIGH
 #define BLUEFRUIT_MODE_DATA      LOW
 #define BLE_BUFSIZE             50
-
 
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
 #define SerialDebug SERIAL_PORT_USBVIRTUAL
 #else
 #define SerialDebug Serial
 #endif
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 // High byte is type, Low byte is datacount
 // datacount is needed when passing ByteArray argument
@@ -73,7 +76,8 @@ protected:
   bool     _verbose;
 
   // internal function
-  bool send_arg_get_resp(int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[]);
+  bool send_arg_get_resp(int32_t* reply, uint8_t argcount, uint16_t argtype[],
+            uint32_t args[], uint16_t at_timeout = DEFUALT_AT_TIMEOUT);
 
 public:
   Adafruit_ATParser(void);
@@ -86,145 +90,154 @@ public:
   // Auto print out TX & RX data to normal Serial
   void verbose(bool enable) { _verbose = enable; }
 
-  bool atcommand_full(const char cmd[]               , int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[]);
-  bool atcommand_full(const __FlashStringHelper *cmd , int32_t* reply, uint8_t argcount, uint16_t argtype[], uint32_t args[]);
+  bool atcommand_full(const char cmd[], int32_t* reply, uint8_t argcount,
+        uint16_t argtype[], uint32_t args[], uint16_t at_timeout = DEFUALT_AT_TIMEOUT);
+
+  bool atcommand_full(const __FlashStringHelper *cmd , int32_t* reply, uint8_t argcount,
+        uint16_t argtype[], uint32_t args[], uint16_t at_timeout = DEFUALT_AT_TIMEOUT);
 
   //--------------------------------------------------------------------+
   // Without Reply
   //--------------------------------------------------------------------+
-  bool atcommand(const char cmd[]               ) { return this->atcommand_full(cmd, NULL, 0, NULL, NULL); }
-  bool atcommand(const __FlashStringHelper *cmd ) { return this->atcommand_full(cmd, NULL, 0, NULL, NULL); }
+  bool atcommand_0(const char cmd[], uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
+            { return this->atcommand_full(cmd, NULL, 0, NULL, NULL, at_timeout); }
+
+  bool atcommand_0(const __FlashStringHelper *cmd, uint16_t at_timeout = DEFUALT_AT_TIMEOUT )
+            { return this->atcommand_full(cmd, NULL, 0, NULL, NULL, at_timeout); }
 
   //------------- One integer argument -------------//
-  bool atcommand(const char cmd[]              , int32_t para1)
+  bool atcommand_1(const char cmd[]              , int32_t para1, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1 };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
-  bool atcommand(const __FlashStringHelper *cmd, int32_t para1)
+  bool atcommand_1(const __FlashStringHelper *cmd, int32_t para1, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1 };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
   //------------- Two integer arguments -------------//
-  bool atcommand(const char cmd[]              , int32_t para1, int32_t para2)
+  bool atcommand_2(const char cmd[], int32_t para1, int32_t para2, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32, AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1, (uint32_t) para2 };
-    return this->atcommand_full(cmd, NULL, 2, type, args);
+    return this->atcommand_full(cmd, NULL, 2, type, args, at_timeout);
   }
 
-  bool atcommand(const __FlashStringHelper *cmd, int32_t para1, int32_t para2)
+  bool atcommand_2(const __FlashStringHelper *cmd, int32_t para1, int32_t para2, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32, AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1, (uint32_t) para2 };
-    return this->atcommand_full(cmd, NULL, 2, type, args);
+    return this->atcommand_full(cmd, NULL, 2, type, args, at_timeout);
   }
 
   //------------- One ByteArray arguments -------------//
-  bool atcommand(const char cmd[]              , const uint8_t bytearray[], uint16_t count)
+  bool atcommand_1(const char cmd[], const uint8_t bytearray[], uint16_t count, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_BYTEARRAY+count };
     uint32_t args[] = { (uint32_t) bytearray };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
-  bool atcommand(const __FlashStringHelper *cmd, const uint8_t bytearray[], uint16_t count)
+  bool atcommand_1(const __FlashStringHelper *cmd, const uint8_t bytearray[], uint16_t count, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_BYTEARRAY+count };
     uint32_t args[] = {(uint32_t) bytearray };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
   //------------- One String argument -------------//
-  bool atcommand(const char cmd[]              , const char* str)
+  bool atcommand_1(const char cmd[], const char* str, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_STRING };
     uint32_t args[] = { (uint32_t) str };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
-  bool atcommand(const __FlashStringHelper *cmd, const char* str)
+  bool atcommand_1(const __FlashStringHelper *cmd, const char* str, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_STRING };
     uint32_t args[] = { (uint32_t) str };
-    return this->atcommand_full(cmd, NULL, 1, type, args);
+    return this->atcommand_full(cmd, NULL, 1, type, args, at_timeout);
   }
 
   //--------------------------------------------------------------------+
   // With Reply
   //--------------------------------------------------------------------+
-  bool atcommandIntReply(const char cmd[], int32_t* reply)               { return this->atcommand_full(cmd, reply, 0, NULL, NULL); }
-  bool atcommandIntReply(const __FlashStringHelper *cmd, int32_t* reply) { return this->atcommand_full(cmd, reply, 0, NULL, NULL); }
+  bool atcommandIntReply_0(const char cmd[], int32_t* reply, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
+        { return this->atcommand_full(cmd, reply, 0, NULL, NULL, at_timeout); }
+
+  bool atcommandIntReply_0(const __FlashStringHelper *cmd, int32_t* reply, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
+        { return this->atcommand_full(cmd, reply, 0, NULL, NULL, at_timeout); }
 
   //------------- One integer argument -------------//
-  bool atcommandIntReply(const char cmd[]              , int32_t* reply, int32_t para1)
+  bool atcommandIntReply_1(const char cmd[], int32_t* reply, int32_t para1, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1 };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
-  bool atcommandIntReply(const __FlashStringHelper *cmd, int32_t* reply, int32_t para1)
+  bool atcommandIntReply_1(const __FlashStringHelper *cmd, int32_t* reply, int32_t para1, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1 };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
   //------------- Two integer arguments -------------//
-  bool atcommandIntReply(const char cmd[]              , int32_t* reply, int32_t para1, int32_t para2)
+  bool atcommandIntReply_2(const char cmd[], int32_t* reply, int32_t para1, int32_t para2, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32, AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1, (uint32_t) para2 };
-    return this->atcommand_full(cmd, reply, 2, type, args);
+    return this->atcommand_full(cmd, reply, 2, type, args, at_timeout);
   }
 
-  bool atcommandIntReply(const __FlashStringHelper *cmd, int32_t* reply, int32_t para1, int32_t para2)
+  bool atcommandIntReply_2(const __FlashStringHelper *cmd, int32_t* reply, int32_t para1, int32_t para2, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_INT32, AT_ARGTYPE_INT32 };
     uint32_t args[] = { (uint32_t) para1, (uint32_t) para2 };
-    return this->atcommand_full(cmd, reply, 2, type, args);
+    return this->atcommand_full(cmd, reply, 2, type, args, at_timeout);
   }
 
   //------------- One ByteArray arguments -------------//
-  bool atcommandIntReply(const char cmd[]              , int32_t* reply, const uint8_t bytearray[], uint16_t count)
+  bool atcommandIntReply_1(const char cmd[], int32_t* reply, const uint8_t bytearray[], uint16_t count, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_BYTEARRAY+count };
     uint32_t args[] = { (uint32_t) bytearray };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
-  bool atcommandIntReply(const __FlashStringHelper *cmd, int32_t* reply, const uint8_t bytearray[], uint16_t count)
+  bool atcommandIntReply_1(const __FlashStringHelper *cmd, int32_t* reply, const uint8_t bytearray[], uint16_t count, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_BYTEARRAY+count };
     uint32_t args[] = { (uint32_t) bytearray };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
   //------------- One String argument -------------//
-  bool atcommandIntReply(const char cmd[]              , int32_t* reply, const char* str)
+  bool atcommandIntReply_1(const char cmd[], int32_t* reply, const char* str, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_STRING };
     uint32_t args[] = { (uint32_t) str };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
-  bool atcommandIntReply(const __FlashStringHelper *cmd, int32_t* reply, const char* str)
+  bool atcommandIntReply_1(const __FlashStringHelper *cmd, int32_t* reply, const char* str, uint16_t at_timeout = DEFUALT_AT_TIMEOUT)
   {
     uint16_t type[] = { AT_ARGTYPE_STRING };
     uint32_t args[] = { (uint32_t) str };
-    return this->atcommand_full(cmd, reply, 1, type, args);
+    return this->atcommand_full(cmd, reply, 1, type, args, at_timeout);
   }
 
   //--------------------------------------------------------------------+
   // RESPONSE PROCESSING
   //--------------------------------------------------------------------+
-  bool waitForOK(void);
+  bool waitForOK(uint16_t at_timeout = DEFUALT_AT_TIMEOUT);
 
   // Read one line of response into internal buffer TODO use below API
 
@@ -235,29 +248,24 @@ public:
     return readline( (char*) buf, bufsize, timeout, multiline );
   }
 
-  uint16_t readline(char    * buf, uint16_t bufsize) { return readline(buf, bufsize, _timeout, false); }
-  uint16_t readline(uint8_t * buf, uint16_t bufsize) { return readline(buf, bufsize, _timeout, false); }
+  uint16_t readline(char    * buf, uint16_t bufsize) { return readline(buf, bufsize, DEFUALT_AT_TIMEOUT, false); }
+  uint16_t readline(uint8_t * buf, uint16_t bufsize) { return readline(buf, bufsize, DEFUALT_AT_TIMEOUT, false); }
 
-  uint16_t readline(uint16_t timeout, boolean multiline = false)
+  uint16_t readline(uint16_t timeout, boolean multiline)
   {
     return readline(this->buffer, BLE_BUFSIZE, timeout, multiline);
   }
 
-  uint16_t readline(void)
+  uint16_t readline(uint16_t timeout = DEFUALT_AT_TIMEOUT)
   {
-    return this->readline(this->buffer, BLE_BUFSIZE, _timeout, false);
+    return this->readline(this->buffer, BLE_BUFSIZE, timeout, false);
   }
 
 
   // read one line and convert the string to integer number
-  int32_t readline_parseInt(void);
+  int32_t readline_parseInt(uint16_t timeout = DEFUALT_AT_TIMEOUT);
 
-  uint16_t readraw(uint16_t timeout);
-  uint16_t readraw(void)
-  {
-    return readraw(_timeout);
-  }
-
+  uint16_t readraw(uint16_t timeout = DEFUALT_AT_TIMEOUT);
   //--------------------------------------------------------------------+
   // HELPER
   //--------------------------------------------------------------------+
